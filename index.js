@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const express = require("express");
 const multer = require("multer");
 const cors = require("cors");
-const port = 3000;
+const port = 9000;
 const { Server } = require("socket.io");
 const bodyparser = require("body-parser");
 const { map, uniqBy, get, random } = require("lodash");
@@ -77,7 +77,6 @@ var mysqlConnection = mysql.createConnection({
 
   multipleStatements: true,
 });
-app.listen(9000);
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -89,7 +88,7 @@ app.use("/uploads", express.static("Uploads"));
 
 io.on("connection", (socket) => {
   console.log("a user connected");
-
+  socket.emit("hello", (hello) => {});
   socket.on("disconnect", () => {
     console.log("user disconnected");
   });
@@ -887,8 +886,9 @@ app.post("/create-checkout-session", async (req, res) => {
   //   clientSecret:
   //     subscription.latest_invoice.payment_intent.client_secret,
   // });
-  server.listen(port, () => {
-    console.log(`Chat application listening on port ${port}`);
-  });
+
   res.send(session.url);
+});
+server.listen(port, () => {
+  console.log(`Chat application listening on port ${port}`);
 });
