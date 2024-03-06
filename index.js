@@ -85,14 +85,18 @@ const io = new Server(server, {
   },
 });
 app.use("/uploads", express.static("Uploads"));
-
 io.on("connection", (socket) => {
   console.log("a user connected");
-  socket.emit("hello", (hello) => {});
+  socket.on("send_msg", () => {
+    // Emit "recieve_msg" event to the client
+    io.emit("recieve_msg", "Message received"); // Use 'io.emit' to send the event to all connected clients
+  });
+
   socket.on("disconnect", () => {
     console.log("user disconnected");
   });
 });
+
 app.get("/", (req, res) => {
   mysqlConnection.query(
     `SELECT id,name,mobno,email,uname,isactive, join_date,imgname,(case when isactive=0 then 'Inactive' else 'Active' end)as status from tbllog ORDER BY tbllog.join_date  ASC`,
