@@ -402,7 +402,7 @@ app.post("/getposts", (req, res) => {
             "select * from postmanager where uid = " +
               item +
               " or uid = " +
-              emp.userId,
+              emp.userId+" ORDER BY `postmanager`.`createat` DESC",
             (err, rowss, fields) => {
               if (!err) {
                 map(rowss, (data) => {
@@ -410,7 +410,7 @@ app.post("/getposts", (req, res) => {
                 });
                 mysqlConnection.query(
                   //privacysts 1 means public
-                  "select * from postmanager where privacysts = 1 and isactive = 1",
+                  "select * from postmanager where privacysts = 1 and isactive = 1 ORDER BY `postmanager`.`createat` DESC",
                   (err, rowsss, fields) => {
                     if (!err) {
                       map(rowsss, (datas) => {
