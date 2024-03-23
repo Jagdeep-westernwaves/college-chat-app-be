@@ -141,13 +141,35 @@ app.post("/event", (req, res) => {
 app.post("/sendMsg", (req, res) => {
   let emp = req.body;
   mysqlConnection.query(
-    "INSERT INTO `chatmsg`(`sId`, `rId`,`CloneMsg`) VALUES (?,?,?)",
-    [emp.lid, emp.fid, emp.msg],
+    "select id, count(*) as count from tbllog where uname=?",
+    [emp?.uname],
     (err, rows, fields) => {
-      if (!err) {
+      if (rows[0].count > 0) {
+        mysqlConnection.query(
+          "INSERT INTO `chatmsg`(`sId`, `rId`,`CloneMsg`) VALUES (?,?,?)",
+          [emp.lid, rows[0].id, emp.msg],
+          (err, rows, fields) => {
+            if (!err) {
+              res.send({ message: "sent" });
+            } else {
+              console.log(err);
+            }
+          }
+        );
+      }
+    }
+  );
+});
+app.post("/hndleMsg", (req, res) => {
+  const emp = req.body;
+  mysqlConnection.query(
+    "select id, count(*) as count from tbllog where uname=?",
+    [emp?.uname],
+    (err, rows, fields) => {
+      if (rows[0].count > 0) {
         mysqlConnection.query(
           "SELECT * FROM `chatmsg` WHERE sId = ? and rId = ? UNION SELECT * from chatmsg where sId=?  and rId = ? ORDER BY `createAt` ASC limit 150",
-          [emp.lid, emp.fid, emp.fid, emp.lid],
+          [emp.lid, rows[0].id, rows[0].id, emp.lid],
           (err, rows, fields) => {
             if (!err) {
               res.send(rows);
@@ -156,22 +178,6 @@ app.post("/sendMsg", (req, res) => {
             }
           }
         );
-      } else {
-        console.log(err);
-      }
-    }
-  );
-});
-app.post("/hndleMsg", (req, res) => {
-  let emp = req.body;
-  mysqlConnection.query(
-    "SELECT * FROM `chatmsg` WHERE sId = ? and rId = ? UNION SELECT * from chatmsg where sId=?  and rId = ? ORDER BY `createAt` ASC limit 150",
-    [emp.lid, emp.fid, emp.fid, emp.lid],
-    (err, rows, fields) => {
-      if (!err) {
-        res.send(rows);
-      } else {
-        console.log(err);
       }
     }
   );
@@ -261,62 +267,70 @@ app.post("/user", (req, res) => {
 });
 app.post("/profile", (req, res) => {
   let emp = req.body;
-  mysqlConnection.query(
-    "select uname,name,mobno,join_date,imgname,id,email from tbllog where isactive = 1 and uname=? ",
-    [emp.uname],
-    (err, rows, fields) => {
-      if (!err) {
-        let newData = [];
-        mysqlConnection.query(
-          "select * from postmanager where isactive = 1 and uid= " + rows[0].id,
-          (err, rowss, fields) => {
-            if (!err) {
-              map(rowss, (items) => {
-                mysqlConnection.query(
-                  "select *,count(*) from commentpost where pId = " + items.id,
-                  (err, commentuRows, fields) => {
-                    if (!err) {
-                      mysqlConnection.query(
-                        "select *,(SELECT COUNT(*) from likeposts where pId=  " +
-                          items.id +
-                          ") as count from likeposts where pId = " +
-                          items.id +
-                          " ORDER BY `likeposts`.`likedTime` DESC",
-                        (err, likeuRows, fields) => {
-                          if (!err) {
-                            items.isLike = get(likeuRows[0], "sts", 0);
-                            items.likeCount = get(likeuRows[0], "count", 0);
-                            items.commentCount =
-                              commentuRows[0].count > 0
-                                ? commentuRows[0].count
-                                : 0;
-                            newData.push(items);
-                          } else {
-                            console.log(err);
+  if (emp.uname && emp.uname !== "null") {
+    mysqlConnection.query(
+      "select uname,name,mobno,join_date,imgname,id,email from tbllog where isactive = 1 and uname=? ",
+      [emp.uname],
+      (err, rows, fields) => {
+        if (!err) {
+          let newData = [];
+          mysqlConnection.query(
+            "select * from postmanager where isactive = 1 and uid= " +
+              rows[0].id,
+            (err, rowss, fields) => {
+              if (!err) {
+                map(rowss, (items) => {
+                  mysqlConnection.query(
+                    "select *,count(*) from commentpost where pId = " +
+                      items.id,
+                    (err, commentuRows, fields) => {
+                      if (!err) {
+                        mysqlConnection.query(
+                          "select *,(SELECT COUNT(*) from likeposts where pId=  " +
+                            items.id +
+                            ") as count from likeposts where pId = " +
+                            items.id +
+                            " ORDER BY `likeposts`.`likedTime` DESC",
+                          (err, likeuRows, fields) => {
+                            if (!err) {
+                              items.isLike = get(likeuRows[0], "sts", 0);
+                              items.likeCount = get(likeuRows[0], "count", 0);
+                              items.commentCount =
+                                commentuRows[0].count > 0
+                                  ? commentuRows[0].count
+                                  : 0;
+                              newData.push(items);
+                            } else {
+                              console.log(err);
+                            }
                           }
-                        }
-                      );
-                    } else {
-                      console.log(err);
+                        );
+                      } else {
+                        console.log(err);
+                      }
                     }
-                  }
-                );
-              });
-              let data = rows[0];
-              data.posts = newData;
-              setTimeout(() => {
-                res.send(data);
-              }, 300);
-            } else {
-              console.log(err);
+                  );
+                });
+                let data = rows[0];
+                data.posts = newData;
+                setTimeout(() => {
+                  res.send(data);
+                }, 300);
+              } else {
+                console.log(err);
+              }
             }
-          }
-        );
-      } else {
-        console.log(err);
+          );
+        } else {
+          console.log(err);
+        }
       }
-    }
-  );
+    );
+  } else {
+    res.status(400).send({
+      message: "Invalid Request",
+    });
+  }
 });
 
 app.post("/refjwt", (req, res) => {
@@ -402,7 +416,8 @@ app.post("/getposts", (req, res) => {
             "select * from postmanager where uid = " +
               item +
               " or uid = " +
-              emp.userId+" ORDER BY `postmanager`.`createat` DESC",
+              emp.userId +
+              " ORDER BY `postmanager`.`createat` DESC",
             (err, rowss, fields) => {
               if (!err) {
                 map(rowss, (data) => {
