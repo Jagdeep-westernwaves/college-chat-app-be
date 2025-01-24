@@ -13,6 +13,7 @@ const {
   geFriendRequestList,
   updateUser,
   updatesUser,
+  confirmFriendRequest,
 } = require("../controller/user_actions");
 const { tokenAuth } = require("../middleware/auth");
 const { uploadFile } = require("../middleware/upload");
